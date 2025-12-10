@@ -100,9 +100,24 @@ void TEA5767::set_stereo_noise_canceling(bool stereo_noise_canceling) {
     this->registers_[3] &= ~0x02;
 }
 
+//uint64_t TEA5767::get_frequency() {
+//  return (((status_[0] & 0x3F) << 8) | status_[1] * QUARTZ / 4) - FILTER;
+//}
+
 uint64_t TEA5767::get_frequency() {
-  return (((status_[0] & 0x3F) << 8) | status_[1] * QUARTZ / 4) - FILTER;
+  // Build PLL word from status bytes (14 bits)
+  uint32_t pll = (((uint32_t)(status_[0] & 0x3F)) << 8) | (uint32_t)status_[1];
+
+  // Convert PLL to frequency:
+  // frequency = (PLL * QUARTZ / 4) - FILTER
+  // Use 64-bit math to be safe
+  uint64_t freq = ((uint64_t)pll * (uint64_t)QUARTZ) / 4ULL;
+  if (freq < (uint64_t)FILTER) {
+    return 0;
+  }
+  return freq - (uint64_t)FILTER;
 }
+
 
 uint8_t TEA5767::get_level() { return this->status_[3] >> 4; }
 
